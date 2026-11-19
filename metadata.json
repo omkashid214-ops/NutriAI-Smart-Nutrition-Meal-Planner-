@@ -1,0 +1,6 @@
+{
+  "name": "NutriAI – Smart Nutrition & Meal Planner",
+  "description": "Personalized smart nutrition, BMI & calorie calculator, rule-based AI meal recommender, daily meal planner, and complete Flutter Android project workspace backed by Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

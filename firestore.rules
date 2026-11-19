@@ -1,0 +1,167 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'fullName', 'email', 'age', 'gender',
+          'heightCm', 'weightKg', 'activityLevel',
+          'dietaryPreference', 'fitnessGoal',
+          'bmi', 'bmiCategory', 'dailyCalorieTarget',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'fullName', 'email', 'age', 'gender',
+          'heightCm', 'weightKg', 'activityLevel',
+          'dietaryPreference', 'fitnessGoal',
+          'bmi', 'bmiCategory', 'dailyCalorieTarget',
+          'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid == request.auth.uid && data.uid == userId && isValidId(data.uid)
+        && data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 80
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.age is number && data.age >= 10 && data.age <= 120
+        && data.gender is string && data.gender in ['male', 'female', 'other']
+        && data.heightCm is number && data.heightCm >= 80 && data.heightCm <= 260
+        && data.weightKg is number && data.weightKg >= 20 && data.weightKg <= 300
+        && data.activityLevel is string && data.activityLevel in ['sedentary', 'light', 'moderate', 'active', 'very_active']
+        && data.dietaryPreference is string && data.dietaryPreference in ['vegetarian', 'vegan', 'non_vegetarian']
+        && data.fitnessGoal is string && data.fitnessGoal in ['weight_loss', 'weight_maintenance', 'weight_gain']
+        && data.bmi is number && data.bmi >= 5 && data.bmi <= 100
+        && data.bmiCategory is string && data.bmiCategory in ['Underweight', 'Normal', 'Overweight', 'Obese']
+        && data.dailyCalorieTarget is number && data.dailyCalorieTarget >= 800 && data.dailyCalorieTarget <= 6500
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMealLogEntry(data, userId, logId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'dateKey', 'mealSlot', 'mealId',
+          'mealName', 'dietType', 'imageKey', 'servings',
+          'calories', 'proteinG', 'carbsG', 'fatG',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'dateKey', 'mealSlot', 'mealId',
+          'mealName', 'dietType', 'imageKey', 'servings',
+          'calories', 'proteinG', 'carbsG', 'fatG',
+          'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == logId && isValidId(data.id)
+        && data.userId is string && data.userId == request.auth.uid && data.userId == userId && isValidId(data.userId)
+        && data.dateKey is string && data.dateKey.size() == 10 && data.dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.mealSlot is string && data.mealSlot in ['breakfast', 'lunch', 'dinner', 'snacks']
+        && data.mealId is string && data.mealId.size() >= 1 && data.mealId.size() <= 128 && isValidId(data.mealId)
+        && data.mealName is string && data.mealName.size() >= 1 && data.mealName.size() <= 120
+        && data.dietType is string && data.dietType in ['vegetarian', 'vegan', 'non_vegetarian']
+        && data.imageKey is string && data.imageKey.size() >= 1 && data.imageKey.size() <= 64 && isValidId(data.imageKey)
+        && data.servings is number && data.servings >= 0.25 && data.servings <= 10
+        && data.calories is number && data.calories >= 0 && data.calories <= 5000
+        && data.proteinG is number && data.proteinG >= 0 && data.proteinG <= 300
+        && data.carbsG is number && data.carbsG >= 0 && data.carbsG <= 500
+        && data.fatG is number && data.fatG >= 0 && data.fatG <= 300
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- /users/{userId} Collection ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update Profile & Nutrition Preferences
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'age', 'gender', 'heightCm', 'weightKg',
+            'activityLevel', 'dietaryPreference', 'fitnessGoal',
+            'bmi', 'bmiCategory', 'dailyCalorieTarget', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // --- /users/{userId}/mealLogs/{logId} Subcollection ---
+      match /mealLogs/{logId} {
+        allow get: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(logId)
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow list: if isOwner(userId)
+          && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(logId)
+          && isValidMealLogEntry(incoming(), userId, logId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(logId)
+          && isValidMealLogEntry(incoming(), userId, logId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            // Action: Update Servings, Slot, or Recalculated Macros
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'mealSlot', 'servings', 'calories', 'proteinG', 'carbsG', 'fatG', 'updatedAt'
+            ])
+          )
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow delete: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(logId)
+          && exists(/databases/$(database)/documents/users/$(userId));
+      }
+    }
+  }
+}

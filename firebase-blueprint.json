@@ -1,0 +1,217 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user nutrition profile, biometric inputs, calculated BMI, calorie targets, and dietary/fitness preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Authentication user UID matching document ID."
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "User full display name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 160,
+          "description": "User email address (PII, restricted to owner only)."
+        },
+        "age": {
+          "type": "number",
+          "description": "User age in years (10 to 120)."
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["male", "female", "other"],
+          "description": "Biological/profile gender used for BMR calculation."
+        },
+        "heightCm": {
+          "type": "number",
+          "description": "Height in centimeters (80 to 260)."
+        },
+        "weightKg": {
+          "type": "number",
+          "description": "Weight in kilograms (20 to 300)."
+        },
+        "activityLevel": {
+          "type": "string",
+          "enum": ["sedentary", "light", "moderate", "active", "very_active"],
+          "description": "Daily physical activity multiplier tier."
+        },
+        "dietaryPreference": {
+          "type": "string",
+          "enum": ["vegetarian", "vegan", "non_vegetarian"],
+          "description": "Dietary preference for meal recommendations."
+        },
+        "fitnessGoal": {
+          "type": "string",
+          "enum": ["weight_loss", "weight_maintenance", "weight_gain"],
+          "description": "Primary fitness and weight management goal."
+        },
+        "bmi": {
+          "type": "number",
+          "description": "Calculated Body Mass Index value."
+        },
+        "bmiCategory": {
+          "type": "string",
+          "enum": ["Underweight", "Normal", "Overweight", "Obese"],
+          "description": "WHO BMI classification label."
+        },
+        "dailyCalorieTarget": {
+          "type": "number",
+          "description": "Calculated daily target kcal based on TDEE and fitness goal."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of initial profile creation (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of most recent profile update."
+        }
+      },
+      "required": [
+        "uid",
+        "fullName",
+        "email",
+        "age",
+        "gender",
+        "heightCm",
+        "weightKg",
+        "activityLevel",
+        "dietaryPreference",
+        "fitnessGoal",
+        "bmi",
+        "bmiCategory",
+        "dailyCalorieTarget",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MealLogEntry": {
+      "title": "MealLogEntry",
+      "description": "A meal logged in a user's daily meal planner across breakfast, lunch, dinner, or snacks.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique log entry identifier matching document ID."
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner UID matching parent user document and auth UID."
+        },
+        "dateKey": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "ISO date key YYYY-MM-DD for the meal plan day."
+        },
+        "mealSlot": {
+          "type": "string",
+          "enum": ["breakfast", "lunch", "dinner", "snacks"],
+          "description": "Meal slot category."
+        },
+        "mealId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Catalog ID of the selected meal."
+        },
+        "mealName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Display name of the meal."
+        },
+        "dietType": {
+          "type": "string",
+          "enum": ["vegetarian", "vegan", "non_vegetarian"],
+          "description": "Dietary classification of the meal."
+        },
+        "imageKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Key referencing local food photography asset."
+        },
+        "servings": {
+          "type": "number",
+          "description": "Serving multiplier (0.25 to 10)."
+        },
+        "calories": {
+          "type": "number",
+          "description": "Total calories for logged servings."
+        },
+        "proteinG": {
+          "type": "number",
+          "description": "Total protein in grams."
+        },
+        "carbsG": {
+          "type": "number",
+          "description": "Total carbohydrates in grams."
+        },
+        "fatG": {
+          "type": "number",
+          "description": "Total fat in grams."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when meal log was created (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last serving/slot update."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "dateKey",
+        "mealSlot",
+        "mealId",
+        "mealName",
+        "dietType",
+        "imageKey",
+        "servings",
+        "calories",
+        "proteinG",
+        "carbsG",
+        "fatG",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores each authenticated user's private profile, biometrics, BMI, calorie targets, and preferences."
+    },
+    "/users/{userId}/mealLogs/{logId}": {
+      "schema": { "$ref": "#/entities/MealLogEntry" },
+      "description": "Stores each user's logged daily meals across breakfast, lunch, dinner, and snacks."
+    }
+  }
+}
